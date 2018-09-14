@@ -602,6 +602,16 @@ namespace WebSocketSharp.Server
       }
     }
 
+
+    /// <summary>
+    /// Gets the TcpClient used for the WebSocket.
+    /// </summary>
+    public TcpListener TcpListener {
+      get {
+        return _listener;
+      }
+    }
+
     /// <summary>
     /// Gets or sets the delegate used to find the credentials
     /// for an identity.
