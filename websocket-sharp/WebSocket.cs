@@ -774,15 +774,6 @@ namespace WebSocketSharp
       }
     }
 
-    /// <summary>
-    /// Gets the TcpClient used for the WebSocket.
-    /// </summary>
-    public TcpClient TcpClient {
-      get {
-        return _tcpClient;
-      }
-    }
-
     #endregion
 
     #region Public Events
@@ -801,6 +792,12 @@ namespace WebSocketSharp
     /// Occurs when the <see cref="WebSocket"/> receives a message.
     /// </summary>
     public event EventHandler<MessageEventArgs> OnMessage;
+
+    /// <summary>
+    /// Callback to allow configuration of new TcpClient
+    /// </summary>
+    public event TcpClientEventHandler OnNewTcpClient;
+    public delegate void TcpClientEventHandler(object sender, TcpClient e);
 
     /// <summary>
     /// Occurs when the WebSocket connection has been established.
@@ -1576,13 +1573,16 @@ namespace WebSocketSharp
       lock (_forPing) {
         try {
           pongReceived.Reset ();
-          if (!send (Fin.Final, Opcode.Ping, data, false))
+          if (!send (Fin.Final, Opcode.Ping, data, false)) {
+            _logger.Warn ("A ping failed to send.");
             return false;
+          }
 
-          return pongReceived.WaitOne (_waitTime);
+        _logger.Trace ("A ping was sent.");
+        return pongReceived.WaitOne (_waitTime);
         }
         catch (ObjectDisposedException) {
-          return false;
+            return false;
         }
       }
     }
@@ -2103,6 +2103,7 @@ namespace WebSocketSharp
           if (res.HasConnectionClose) {
             releaseClientResources ();
             _tcpClient = new TcpClient (_proxyUri.DnsSafeHost, _proxyUri.Port);
+            OnNewTcpClient?.Invoke (this, _tcpClient);
             _stream = _tcpClient.GetStream ();
           }
 
@@ -2125,11 +2126,13 @@ namespace WebSocketSharp
     {
       if (_proxyUri != null) {
         _tcpClient = new TcpClient (_proxyUri.DnsSafeHost, _proxyUri.Port);
+        OnNewTcpClient?.Invoke (this, _tcpClient);
         _stream = _tcpClient.GetStream ();
         sendProxyConnectRequest ();
       }
       else {
         _tcpClient = new TcpClient (_uri.DnsSafeHost, _uri.Port);
+        OnNewTcpClient?.Invoke (this, _tcpClient);
         _stream = _tcpClient.GetStream ();
       }
 
@@ -2401,8 +2404,11 @@ namespace WebSocketSharp
             if (_readyState != WebSocketState.Open)
               return false;
 
-            if (!sendBytes (frameAsBytes))
-              return false;
+              if (!sendBytes (frameAsBytes)) {
+                _logger.Warn ("A ping failed to send.");
+                return false;
+              }
+              _logger.Trace ("A ping was sent.");
           }
 
           return pongReceived.WaitOne (timeout);
