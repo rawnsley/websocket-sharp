@@ -1734,14 +1734,15 @@ namespace WebSocketSharp
 
         if (!comp) {
           if (extension.IsCompressionExtension (CompressionMethod.Deflate)) {
-            _compression = CompressionMethod.Deflate;
+            _logger.Warn ("Ignoring compression request from WebSocket client");
+            //_compression = CompressionMethod.Deflate;
 
-            buff.AppendFormat (
-              "{0}, ",
-              _compression.ToExtensionString (
-                "client_no_context_takeover", "server_no_context_takeover"
-              )
-            );
+            //buff.AppendFormat (
+            //  "{0}, ",
+            //  _compression.ToExtensionString (
+            //    "client_no_context_takeover", "server_no_context_takeover"
+            //  )
+            //);
 
             comp = true;
           }
